@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Schema;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,11 +22,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // dynamic constact varable
-        $settings = DB::table('settings')->get();
-        foreach ($settings as $setting) {
-            Config::set('constants.' . $setting->name, $setting->description);
-            
+        if (Schema::hasTable('settings')) {
+            try {
+                $settings = cache()->rememberForever('app_settings', function () {
+                    return DB::table('settings')->get();
+                });
+
+                foreach ($settings as $setting) {
+                    Config::set('constants.' . $setting->name, $setting->description);
+                }
+            } catch (\Exception $e) {
+                // Ignore errors during seeding or migration
+            }
         }
     }
 }
