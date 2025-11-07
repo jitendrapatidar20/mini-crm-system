@@ -22,19 +22,13 @@ class AppServiceProvider extends ServiceProvider
      */
  public function boot(): void
 {
-    try {
-        if (Schema::hasTable('settings')) {
-            $settings = cache()->rememberForever('app_settings', function () {
-                return DB::table('settings')->get();
-            });
+     // Check if the 'settings' table exists before querying
+    if (Schema::hasTable('settings')) {
+        $settings = DB::table('settings')->get();
 
-            foreach ($settings as $setting) {
-                Config::set('constants.' . $setting->name, $setting->description);
-            }
+        foreach ($settings as $setting) {
+            Config::set('constants.' . $setting->name, $setting->description);
         }
-    } catch (\Throwable $e) {
-        // Skip during migration or DB connection error
-        logger()->warning('AppServiceProvider skipped settings load: '.$e->getMessage());
     }
 }
 
