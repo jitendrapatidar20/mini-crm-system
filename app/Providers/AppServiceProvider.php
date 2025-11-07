@@ -20,20 +20,22 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
-    {
+ public function boot(): void
+{
+    try {
         if (Schema::hasTable('settings')) {
-            try {
-                $settings = cache()->rememberForever('app_settings', function () {
-                    return DB::table('settings')->get();
-                });
+            $settings = cache()->rememberForever('app_settings', function () {
+                return DB::table('settings')->get();
+            });
 
-                foreach ($settings as $setting) {
-                    Config::set('constants.' . $setting->name, $setting->description);
-                }
-            } catch (\Exception $e) {
-                // Ignore errors during seeding or migration
+            foreach ($settings as $setting) {
+                Config::set('constants.' . $setting->name, $setting->description);
             }
         }
+    } catch (\Throwable $e) {
+        // Skip during migration or DB connection error
+        logger()->warning('AppServiceProvider skipped settings load: '.$e->getMessage());
     }
+}
+
 }
