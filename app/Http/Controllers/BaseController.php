@@ -3,60 +3,58 @@ namespace App\Http\Controllers;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Cache;
+use App\Models\BlockUser;
 use App\Models\User;
-use App\Models\BlockUser; 
-use Illuminate\Support\Facades\Log;
-use Jenssegers\Agent\Facades\Agent;
 
 class BaseController extends Controller
 {
-    
-
     protected function getAttemptsStatus($ip, $agent, $email)
     {
-        $result = ['status' => true, 'permanent_block' => 0];
-        if (BlockUser::where('ip_address', $ip)->where('permanent_block', 1)->exists()) {
+        $key = 'login_attempts:' . md5($ip.'|'.$email);
+        $blockKey = 'blocked:' . md5($ip.'|'.$email);
+
+        $maxAttempts  = 5;
+        $blockMinutes = 15;
+
+        // Permanent block (DB)
+        $isPermanentlyBlocked = BlockUser::where(function ($q) use ($ip, $email) {
+                $q->where('ip_address', $ip)
+                ->orWhere('email', $email);
+            })
+            ->where('permanent_block', true)
+            ->exists();
+
+        if ($isPermanentlyBlocked) {
             return ['status' => false, 'permanent_block' => 1];
         }
 
-        $recentBlock = BlockUser::where('ip_address', $ip)
-            ->where('created_at', '>=', now()->subMinutes(15))
-            ->latest()->first();
-
-        if ($recentBlock) {
+        //Temporary block (Cache)
+        if (Cache::has($blockKey)) {
             return ['status' => false, 'permanent_block' => 0];
         }
 
-        $attempts = Session::increment('RestrictLogin');
-        if ($attempts >= 5) {
+        // Increment attempts safely
+        $attempts = Cache::get($key, 0) + 1;
+
+        Cache::put($key, $attempts, now()->addMinutes($blockMinutes));
+
+        if ($attempts >= $maxAttempts) {
+
             BlockUser::create([
-                'ip_address' => $ip,
-                'user_agent' => $agent,
-                'user_id' => optional(User::where('email', $email)->first())->id,
+                'ip_address'      => $ip,
+                'email'           => $email,
+                'user_agent'      => $agent,
+                'user_id'         => User::where('email', $email)->value('id'),
+                'permanent_block' => false,
             ]);
-            Session::put('RestrictLogin', 0);
+
+            Cache::put($blockKey, true, now()->addMinutes($blockMinutes));
+            Cache::forget($key);
+
             return ['status' => false, 'permanent_block' => 0];
         }
-        return $result;
+
+        return ['status' => true, 'permanent_block' => 0];
     }
-    // protected function logStore(Request $request, $response = [])
-    // {
-    //     try {
-    //         $logData = [
-    //             'Request URI'  => $request->getPathInfo(),
-    //             'Method'       => $request->getMethod(),
-    //             'IP Address'   => $request->ip(),
-    //             'GET Data'     => $request->query(),         // $_GET
-    //             'Post Data'    => $request->post(),          // $_POST
-    //             'All Data'     => $request->all(),           // $_REQUEST
-    //             'Json Data'    => $request->json()->all(),   // JSON payload
-    //             'Response'     => $response,
-    //         ];
-    //         Log::info('HTTP Request: ' . json_encode($logData));
-    //     } catch (\Throwable $th) {
-    //         // Optional: Log the error if needed
-    //         Log::error('Failed to log request: ' . $th->getMessage());
-    //     }
-    // }
-	
 }

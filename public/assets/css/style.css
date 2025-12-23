@@ -1,7 +1,10 @@
  /* ======== HEADER ======== */
     .navbar {
-      background: linear-gradient(90deg, #0d6efd, #0056b3);
+      background: linear-gradient(90deg, #000000, #0056b3);
       padding: 0.8rem 1rem;
+    }
+    .error{
+    	color: red!important;
     }
     .navbar-brand {
       font-weight: 600;
@@ -141,3 +144,4 @@
         font-size: 14px;
       }
     }
+

@@ -11,17 +11,22 @@ class CreateContactsTable extends Migration
         Schema::create('contacts', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('slug', 191);
+            $table->string('slug', 191)->unique();
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
             $table->enum('gender', ['male','female','other'])->nullable();
             $table->string('profile_image')->nullable();
             $table->string('additional_file')->nullable();
             $table->unsignedBigInteger('merged_into')->nullable();
+            $table->timestamp('merged_at')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+            $table->foreign('merged_into')
+                ->references('id')
+                ->on('contacts')
+                ->onDelete('set null');
 
-            $table->foreign('merged_into')->references('id')->on('contacts')->onDelete('set null');
+            $table->index('merged_into');
         });
     }
 
@@ -30,5 +35,3 @@ class CreateContactsTable extends Migration
         Schema::dropIfExists('contacts');
     }
 }
-
-?>

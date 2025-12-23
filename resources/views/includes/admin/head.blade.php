@@ -17,9 +17,8 @@
     <link rel="stylesheet" href="{{asset('assets/css/fonts.css')}}">
     <link rel="stylesheet" href="{{asset('assets/css/style.css')}}">
     <link rel="stylesheet" href="{{asset('assets/css/custom.css')}}">
-    <link href="{{asset('assets/css/password-policy.css')}}" rel="stylesheet" type="text/css" />
 
-    
+
     <link rel="preload" href="{{asset('assets/css/adminlte.css')}}" as="style" />
     <!--end::Accessibility Features-->
 
@@ -69,6 +68,14 @@
       integrity="sha256-+uGLJmmTKOqBr+2E6KDYs/NRsHxSkONXFHUL0fy2O/4="
       crossorigin="anonymous"
     />
+    <style type="text/css">
+      .sidebar-brand{
+        border-bottom:none;
+      }
+      .bg-body-secondary{
+        background-color:  #d6d6df!important;
+      }
+    </style>
 
     
 </head>

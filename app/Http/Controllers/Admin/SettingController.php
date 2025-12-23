@@ -11,7 +11,7 @@ class SettingController extends BaseController
     public function index(Request $request)
     {
         $data = [];
-        $PageData = PageTitle::whereId(4)->first();
+        $PageData = PageTitle::whereId(3)->first();
         $data['title']= $PageData->title;
         $data['meta_title']= $PageData->meta_title;
         $data['meta_keyword']= $PageData->meta_keyword;

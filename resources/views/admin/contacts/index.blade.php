@@ -283,21 +283,41 @@
   });
 
   $('#previewMergeBtn').click(() => {
-    const master = $('#merge_master_id').val();
-    const secondary = $('#merge_secondary_id').val();
-    if (!master || !secondary) { alert('Enter both IDs'); return; }
+      const master = $('#merge_master_id').val();
+      const secondary = $('#merge_secondary_id').val();
 
-    $.post("{{ route('admin.contacts.merge.preview') }}", {
-      primary_id: master, secondary_id: secondary, _token: '{{ csrf_token() }}'
-    }, res => {
-      const comp = res.comparison;
-      let html = '<h6>Comparison</h6><table class="table table-bordered"><tr><th>Field</th><th>Master</th><th>Secondary</th></tr>';
-      for (const f in comp.fields) {
-        html += `<tr><td>${f}</td><td>${comp.fields[f].primary || ''}</td><td>${comp.fields[f].secondary || ''}</td></tr>`;
-      }
-      html += '</table>';
-      $('#mergePreviewArea').html(html);
-    });
+      $.post("{{ route('admin.contacts.merge.preview') }}", {
+        primary_id: master,
+        secondary_id: secondary,
+        _token: '{{ csrf_token() }}'
+      }, res => {
+
+        let html = `
+        <table class="table table-bordered">
+          <tr>
+            <th>Field</th>
+            <th>Master</th>
+            <th>Secondary</th>
+            <th>Action</th>
+          </tr>`;
+
+        res.comparison.customs.forEach(c => {
+          html += `
+          <tr>
+            <td>${c.field_name}</td>
+            <td>${c.primary ?? '-'}</td>
+            <td>${c.secondary ?? '-'}</td>
+            <td>
+              ${(c.primary && c.secondary && c.primary !== c.secondary)
+                ? '<span class="badge bg-warning">Conflict</span>'
+                : '<span class="badge bg-success">Copy</span>'}
+            </td>
+          </tr>`;
+        });
+
+        html += '</table>';
+        $('#mergePreviewArea').html(html);
+      });
   });
 
   $('#confirmMergeBtn').click(() => {

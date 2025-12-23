@@ -26,56 +26,57 @@ class AuthController extends BaseController
     public function postLogin(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'email'    => 'required|email',
             'password' => 'required',
         ]);
 
-        $blockStatus = $this->getAttemptsStatus($request->ip(), $request->header('User-Agent'), $request->email);
+        // Brute-force protection
+        $blockStatus = $this->getAttemptsStatus(
+            $request->ip(),
+            $request->header('User-Agent'),
+            $request->email
+        );
 
         if (!$blockStatus['status']) {
-            $message = $blockStatus['permanent_block']
-                ? 'You have been permanently blocked. Contact admin.'
-                : 'You are temporarily blocked for 15 minutes.';
+           $message = $blockStatus['permanent_block']
+            ? 'You have been permanently blocked. Contact admin.'
+            : 'You are temporarily blocked for 15 minutes.';
             return response()->json(['status' => false, 'error' => $message], 401);
         }
 
         $user = User::where('email', $request->email)->first();
-       
 
-        if (!$user  || !Hash::check($request->password, $user->password)) {
-            return response()->json(['status' => false, 'error' => 'Invalid credentials.'], 401);
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'status' => false,
+                'error'  => 'Invalid credentials'
+            ], 401);
         }
 
         if ($user->status != 1) {
-            return response()->json(['status' => false, 'error' => 'Account not approved.'], 401);
-        }
-
-        if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
-            $user->update([
-                'last_ip' => $request->ip(),
-                'last_latitude' => $request->latitude,
-                'last_longitude' => $request->longitude
-            ]);
-
-             LoginHistory::create([
-                'user_id' => $user->id,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->header('User-Agent'),
-                'latitude' => $request->latitude,
-                'longitude' => $request->longitude
-            ]);
-
-
             return response()->json([
-                'status' => true,
-                'message' => 'Login successful',
-                'redirect' => route('dashboard')
-            ]);
+                'status' => false,
+                'error'  => 'Account not approved'
+            ], 401);
         }
 
-        return response()->json(['status' => false, 'error' => 'Login failed.'], 401);
-    }
+        // Admin-only login
+        if ($user->role_id !== 1) {
+            return response()->json([
+                'status' => false,
+                'error'  => 'Unauthorized access'
+            ], 403);
+        }
 
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return response()->json([
+            'status'   => true,
+            'message'  => 'Login successful',
+            'redirect' => route('dashboard'),
+        ]);
+    }
 
 }
 
